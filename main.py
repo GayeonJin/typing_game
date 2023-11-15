@@ -19,6 +19,8 @@ LIFE_COUNT = 3
 STATUS_XOFFSET = 10
 STATUS_YOFFSET = 5
 
+INPUTTEXT_YOFFSET = 30
+
 DOWN_SPEED = 20
 ENEMY_CREATION_SPEED = 80
 ENEMY_MAX = 5
@@ -38,6 +40,14 @@ def draw_score(count) :
     font = pygame.font.SysFont(None, 25)
     text = font.render("Score : " + str(count), True, COLOR_WHITE)
     gctrl.surface.blit(text, (10, STATUS_YOFFSET))
+
+def draw_inputtext(str) :
+    font = pygame.font.Font('freesansbold.ttf', 25)
+    text_suf = font.render(str, True, COLOR_WHITE)
+    text_rect = text_suf.get_rect()
+    text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
+    text_rect.top = gctrl.height - INPUTTEXT_YOFFSET
+    gctrl.surface.blit(text_suf, text_rect)    
 
 def game_over() :
     font = pygame.font.Font('freesansbold.ttf', 80)
@@ -95,11 +105,11 @@ def run_game() :
             if event.type == pygame.KEYUP :
                 if event.key >= pygame.K_a and event.key <= pygame.K_z :
                     input_str = input_str + "%c"%event.key
-                    print(input_str)
+                    #print(input_str)
                 elif event.key == pygame.K_BACKSPACE :
                     if len(input_str) > 0 :
                         input_str = input_str[slice(-1)]
-                        print(input_str)
+                        #print(input_str)
                 elif event.key == pygame.K_RETURN :
                     delete_index = -1
                     for index, enemy in enumerate(enemies) :
@@ -116,12 +126,18 @@ def run_game() :
                         score += 10
 
                     input_str = ''
+                elif event.key == pygame.K_F10 :
+                    gctrl.save_scr_capture(TITLE_STR)
 
         # Clear gamepad
         gctrl.surface.fill(COLOR_WHITE)
 
         # Draw background
         gctrl.surface.blit(bg_img, (0, 0))
+
+        # Draw test
+        if len(input_str) > 0 :
+            draw_inputtext(input_str)
 
         # Create enemy
         enemy_tick += 1

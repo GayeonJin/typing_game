@@ -5,9 +5,6 @@ import pygame
 import random
 from time import sleep
 
-import csv
-from io import StringIO
-
 from gobject import *
 from gresource import *
 
@@ -20,16 +17,7 @@ STATUS_XOFFSET = 10
 STATUS_YOFFSET = 5
 
 INPUTTEXT_YOFFSET = 30
-
-DOWN_SPEED = 20
-ENEMY_CREATION_SPEED = 80
-ENEMY_MAX = 5
-
-test_word_str = 'Acted, Adapted, Combined, Composed, Conceptualized, Condensed, Created, Customized, Designed, Developed, \
-                Devised, Directed, Displayed, Entertained, Established, Fashioned, Formulated, Founded, Illustrated, Initiated, \
-                Instituted, Integrated, Introduced, Invented, Modeled, Modiﬁed, Originated, Performed, Photographed, Planned, \
-                Revised, Revitalized, Shaped, Solve'    
-      
+     
 class game :
     def __init__(self) :
         # initialize pygame
@@ -65,12 +53,13 @@ class game :
         gctrl.surface.blit(text, (10, STATUS_YOFFSET))
 
     def draw_inputtext(self, str) :
-        font = pygame.font.Font('freesansbold.ttf', 25)
-        text_suf = font.render(str, True, COLOR_WHITE)
-        text_rect = text_suf.get_rect()
-        text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
-        text_rect.top = gctrl.height - INPUTTEXT_YOFFSET
-        gctrl.surface.blit(text_suf, text_rect)    
+        if len(str) > 0 :
+            font = pygame.font.Font('freesansbold.ttf', 25)
+            text_suf = font.render(str, True, COLOR_WHITE)
+            text_rect = text_suf.get_rect()
+            text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
+            text_rect.top = gctrl.height - INPUTTEXT_YOFFSET
+            gctrl.surface.blit(text_suf, text_rect)    
 
     def game_over(self) :
         font = pygame.font.Font('freesansbold.ttf', 80)
@@ -109,25 +98,10 @@ class game :
     def run_game(self) :
         self.start_game()
 
-        test_dic = []
-        f = StringIO(test_word_str)
-        reader = csv.reader(f, delimiter=',')
-        for rows in reader :
-            for word in rows :
-                word = word.strip()
-                word = word.lower()
-                test_dic.append(word)
-
-        enemies = []
-        delete_indexes = []
-        max_enemy = ENEMY_MAX
-
-        booms = []
-
         input_str = ''
 
-        tick = 0
-        enemy_tick = 0
+        enemy_ctrl = enemy_group()
+
         score = 0
         life = LIFE_COUNT
         crashed = False
@@ -149,18 +123,7 @@ class game :
                             input_str = input_str[slice(-1)]
                             #print(input_str)
                     elif event.key == pygame.K_RETURN :
-                        delete_index = -1
-                        for index, enemy in enumerate(enemies) :
-                            # print(enemy.text, input_str)
-                            if enemy.text == input_str :
-                                delete_index = index
-                                x = enemy.x
-                                y = enemy.y
-                                break
-                    
-                        if delete_index != -1 :
-                            booms.append(boom_object(x, y))
-                            del enemies[index]
+                        if enemy_ctrl.compare(input_str) == True :
                             score += 10
 
                         input_str = ''
@@ -174,41 +137,17 @@ class game :
             gctrl.surface.blit(self.bg_img, (0, 0))
 
             # Draw test
-            if len(input_str) > 0 :
-                self.draw_inputtext(input_str)
+            self.draw_inputtext(input_str)
 
             # Create enemy
-            enemy_tick += 1
-            if enemy_tick > ENEMY_CREATION_SPEED :
-                enemy_tick = 0
-        
-                if len(enemies) < max_enemy :
-                    random.shuffle(test_dic)
-                    enemies.append(enemy_object(test_dic[0]))
+            enemy_ctrl.create()
 
             # Move enemy
-            tick += 1
-            if tick > DOWN_SPEED :
-                for i, enemy in enumerate(enemies) :
-                    enemy.move()
-                    if enemy.is_out_of_range() == True :
-                        delete_indexes.append(i)
-                        life -= 1
-                tick = 0
-
-            for index in delete_indexes :
-                del enemies[index]
-
-            delete_indexes = []
+            if enemy_ctrl.move() == True :
+                life -= 1
 
             # Draw enemy
-            for enemy in enemies :
-                enemy.draw()
-
-            for i in range(len(booms)) :
-                boom = booms.pop(0)
-                if boom.draw() == True :
-                    booms.append(boom)
+            enemy_ctrl.draw()
 
             # Draw Score
             self.draw_score(score)

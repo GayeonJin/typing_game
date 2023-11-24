@@ -17,7 +17,13 @@ STATUS_XOFFSET = 10
 STATUS_YOFFSET = 5
 
 INPUTTEXT_YOFFSET = 30
-     
+
+ALIGN_LEFT = 0x01
+ALIGN_RIGHT = 0x02
+ALIGN_CENTER = 0x04
+ALIGN_BOTTOM = 0x10
+ALIGN_TOP = 0x20
+
 class game :
     def __init__(self) :
         # initialize pygame
@@ -41,16 +47,21 @@ class game :
         pygame.quit()
         sys.exit()
 
-    def draw_life(self, count) :
+    def draw_string(self, str, x_offset = 0, y = 0, align = ALIGN_LEFT) :
         font = pygame.font.SysFont(None, 25)
-        text = font.render("Life : " + str(count), True, COLOR_WHITE)
+        text = font.render(str, True, COLOR_WHITE)
         text_rect = text.get_rect()
-        gctrl.surface.blit(text, (gctrl.width - text_rect.width - STATUS_XOFFSET, STATUS_YOFFSET))
+
+        if align == ALIGN_LEFT :
+            gctrl.surface.blit(text, (x_offset, y))
+        elif align == ALIGN_RIGHT :
+            gctrl.surface.blit(text, (gctrl.width - text_rect.width - x_offset, y))
+
+    def draw_life(self, count) :
+        self.draw_string("Life : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_RIGHT)
 
     def draw_score(self, count) :
-        font = pygame.font.SysFont(None, 25)
-        text = font.render("Score : " + str(count), True, COLOR_WHITE)
-        gctrl.surface.blit(text, (10, STATUS_YOFFSET))
+        self.draw_string("Score : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_LEFT)
 
     def draw_inputtext(self, str) :
         if len(str) > 0 :

@@ -1,179 +1,177 @@
 #!/usr/bin/python
 
+import os
 import sys
+import csv
+
 import pygame
+import pymunk
+import pymunk.pygame_util
 import random
 from time import sleep
 
 from gobject import *
 from gresource import *
 
-TITLE_STR = "Typing Game"
+TITLE_STR = "Brick Breaker"
 
-SCORE_UNIT = 10
-LIFE_COUNT = 3
+INFO_HEIGHT = 40
+INFO_OFFSET = 10
+INFO_FONT = 14
 
-STATUS_XOFFSET = 10
-STATUS_YOFFSET = 5
+BAR_WIDTH = 60
 
-INPUTTEXT_YOFFSET = 30
+def draw_info() :
+    font = pygame.font.SysFont('Verdana', INFO_FONT)
+    info = font.render('F1/F2 : Load/Save file    space : toggle', True, COLOR_BLACK)
 
-ALIGN_LEFT = 0x01
-ALIGN_RIGHT = 0x02
-ALIGN_CENTER = 0x04
-ALIGN_BOTTOM = 0x10
-ALIGN_TOP = 0x20
+    pygame.draw.rect(gctrl.surface, COLOR_PURPLE, (0, gctrl.height - INFO_HEIGHT, gctrl.width, INFO_HEIGHT))
+    gctrl.surface.blit(info, (INFO_OFFSET * 2, gctrl.height - 2 * INFO_FONT - INFO_OFFSET)) 
 
-class game :
-    def __init__(self) :
-        # initialize pygame
-        pygame.init()
-        self.clock = pygame.time.Clock()
+def draw_message(str) :
+    font = pygame.font.Font('freesansbold.ttf', 40)
+    text_suf = font.render(str, True, COLOR_BLACK)
+    text_rect = text_suf.get_rect()
+    text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
+
+    gctrl.surface.blit(text_suf, text_rect)
+    pygame.display.update()
+    sleep(2)
+
+def terminate() :
+    pygame.quit()
+    sys.exit()
+
+def start_game() :
+    global clock
+    global ball
+    global bars
+
+    draw_options = pymunk.pygame_util.DrawOptions(gctrl.surface)
+
+    centerx = gctrl.width / 2
+    centery = gctrl.height / 2
+
+    sx = 5
+    sy = 5
+    ex = gctrl.width - 5
+    ey = gctrl.height - 5
     
-        # backgroud and screen
-        self.bg_img = pygame.image.load(get_img_resource('id_background'))
+    walls = []
+    walls.append(wall_object((sx, sy), (sx, ey), WALL_COLLISION_TYPE))
+    walls.append(wall_object((ex, ey), (ex, sy), WALL_COLLISION_TYPE))    
+    walls.append(wall_object((sx, sy), (ex, sy), WALL_COLLISION_TYPE))
+    walls.append(wall_object((sx, ey), (ex, ey), BOTTOM_COLLISION_TYPE))
 
-        pad_width = self.bg_img.get_width()
-        pad_height = self.bg_img.get_height()
-
-        gctrl.set_surface(pygame.display.set_mode((pad_width, pad_height)))
-        pygame.display.set_caption(TITLE_STR)
-
-        # sound resource
-        self.snd_shot = pygame.mixer.Sound(get_snd_resource('snd_shot'))
-        self.snd_explosion = pygame.mixer.Sound(get_snd_resource('snd_explosion'))   
-
-    def terminate(self) :
-        pygame.quit()
-        sys.exit()
-
-    def draw_string(self, str, x_offset = 0, y = 0, align = ALIGN_LEFT) :
-        font = pygame.font.SysFont(None, 25)
-        text = font.render(str, True, COLOR_WHITE)
-        text_rect = text.get_rect()
-
-        if align == ALIGN_LEFT :
-            gctrl.surface.blit(text, (x_offset, y))
-        elif align == ALIGN_RIGHT :
-            gctrl.surface.blit(text, (gctrl.width - text_rect.width - x_offset, y))
-
-    def draw_life(self, count) :
-        self.draw_string("Life : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_RIGHT)
-
-    def draw_score(self, count) :
-        self.draw_string("Score : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_LEFT)
-
-    def draw_inputtext(self, str) :
-        if len(str) > 0 :
-            font = pygame.font.Font('freesansbold.ttf', 25)
-            text_suf = font.render(str, True, COLOR_WHITE)
-            text_rect = text_suf.get_rect()
-            text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
-            text_rect.top = gctrl.height - INPUTTEXT_YOFFSET
-            gctrl.surface.blit(text_suf, text_rect)    
-
-    def game_over(self) :
-        font = pygame.font.Font('freesansbold.ttf', 80)
-        text_suf = font.render('Game Over', True, COLOR_RED)
-        text_rect = text_suf.get_rect()
-        text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
-
-        gctrl.surface.blit(text_suf, text_rect)
-        pygame.display.update()
-        sleep(2)
-        self.run_game()
-
-    def start_game(self) :
-        # Clear gamepad
-        gctrl.surface.fill(COLOR_WHITE)
-
-        font1 = pygame.font.SysFont(None, 40)
-        text_suf1 = font1.render("press any key", True, COLOR_RED)
-        text_rect1 = text_suf1.get_rect()
-        text_rect1.top = gctrl.height / 2
-        text_rect1.centerx = gctrl.width / 2
-        gctrl.surface.blit(text_suf1, text_rect1)
+    for wall in walls :
+        gctrl.space.add(wall.body, wall.shape)
     
-        while True :
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.terminate()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.terminate()
-                    return
+    brick_sx = 40
+    brick_sy = 100
 
-            pygame.display.update()
-            self.clock.tick(60)    
+    brick_col_num = 8
+    brick_row_num = 8
+    brick_width = (gctrl.width - brick_sx * 2) / brick_col_num
+    brick_height = 20
 
-    def run_game(self) :
-        self.start_game()
+    bricks = []
+    for y in range(brick_row_num) :
+        for x in range(brick_col_num+1) :
+            bricks.append(brick_object((brick_sx, brick_sy), brick_width, brick_height))
+            brick_sx += brick_width
+        brick_sy += brick_height
+        brick_sx = 40
 
-        input_str = ''
+    for brick in bricks :
+        gctrl.space.add(brick.body, brick.shape)
 
-        enemy_ctrl = enemy_group()
+    bar_sx = centerx - (BAR_WIDTH / 2)
+    bar_ex = centerx + (BAR_WIDTH / 2)
+    bar_y = gctrl.height - 30
+ 
+    bar = bar_object((bar_sx, bar_y), (bar_ex, bar_y), BAR_COLLISION_TYPE)
+    gctrl.space.add(bar.body, bar.shape)
 
-        score = 0
-        life = LIFE_COUNT
-        crashed = False
-        while not crashed :
-            for event in pygame.event.get() :
-                if event.type == pygame.QUIT :
-                    crashed = True
+    ball = ball_object((centerx, centery))
+    gctrl.space.add(ball.body, ball.shape)
 
-                if event.type == pygame.KEYDOWN :
-                    if event.key == pygame.K_F10 :
-                        gctrl.save_scr_capture(TITLE_STR)
+    coll_handler1 = gctrl.space.add_collision_handler(BALL_COLLISION_TYPE, BOTTOM_COLLISION_TYPE)
+    coll_handler1.begin = ball.coll_begin
 
-                if event.type == pygame.KEYUP :
-                    if event.key >= pygame.K_a and event.key <= pygame.K_z :
-                        input_str = input_str + "%c"%event.key
-                        #print(input_str)
-                    elif event.key == pygame.K_BACKSPACE :
-                        if len(input_str) > 0 :
-                            input_str = input_str[slice(-1)]
-                            #print(input_str)
-                    elif event.key == pygame.K_RETURN :
-                        if enemy_ctrl.compare(input_str) == True :
-                            score += 10
+    coll_handler2 = gctrl.space.add_collision_handler(BAR_COLLISION_TYPE, WALL_COLLISION_TYPE)
+    coll_handler2.begin = bar.coll_begin
 
-                        input_str = ''
-                    elif event.key == pygame.K_F10 :
-                        gctrl.save_scr_capture(TITLE_STR)
+    def brick_separate(arbiter, space, data) :
+        shape = arbiter.shapes[0]
+        #print('brick shape :', shape)
 
-            # Clear gamepad
-            gctrl.surface.fill(COLOR_WHITE)
+        gctrl.space.remove(shape.body, shape)
 
-            # Draw background
-            gctrl.surface.blit(self.bg_img, (0, 0))
+        for i, brick in enumerate(bricks) :
+            if brick.body == shape.body :
+                bricks.remove(brick)
+                break
+    
+    coll_handler3 = gctrl.space.add_collision_handler(BRICK_COLLISION_TYPE, BALL_COLLISION_TYPE)
+    coll_handler3.separate = brick_separate
 
-            # Draw test
-            self.draw_inputtext(input_str)
+    timeStep = 1.0 / 60
 
-            # Create enemy
-            enemy_ctrl.create()
+    running = True
+    while running:
+        for event in pygame.event.get() :
+            if event.type == pygame.QUIT :
+                running = False
+                continue
 
-            # Move enemy
-            if enemy_ctrl.move() == True :
-                life -= 1
+            if event.type == pygame.KEYDOWN :
+                if event.key == pygame.K_LEFT :
+                    (x, y) = bar.get_position_a()
+                    if x > 10 :
+                        bar.set_velociy(-400, 0)
+                elif event.key == pygame.K_RIGHT :
+                    (x, y) = bar.get_position_b()
+                    if x < gctrl.width - 10 :
+                        bar.set_velociy(400, 0)
+            elif event.type == pygame.KEYUP :
+                if event.key == pygame.K_LEFT :
+                    bar.set_velociy(0, 0)
+                elif event.key == pygame.K_RIGHT :
+                    bar.set_velociy(0, 0)
 
-            # Draw enemy
-            enemy_ctrl.draw()
+        gctrl.surface.fill(COLOR_BLACK)
 
-            # Draw Score
-            self.draw_score(score)
-            self.draw_life(life)
+        # do not draw pymunk debug 
+        #gctrl.space.debug_draw(draw_options)
 
-            pygame.display.update()
-            self.clock.tick(60)
+        # use object draw function
+        for wall in walls :
+            wall.draw()
 
-            if life <= 0 :
-                self.game_over()
-                crashed = True
+        for brick in bricks :
+            brick.draw()
 
-        self.terminate()
+        bar.draw()
+        ball.draw()
+
+        gctrl.space.step(timeStep)
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()
+
+def init_game() :
+    global clock
+
+    pygame.init()
+    clock = pygame.time.Clock()
+
+    pad_width = 480
+    pad_height = 640
+
+    gctrl.set_surface(pygame.display.set_mode((pad_width, pad_height)))
+    pygame.display.set_caption(TITLE_STR)    
 
 if __name__ == '__main__' :
-    typing_game = game() 
-    typing_game.run_game()
-
+    init_game()
+    start_game()

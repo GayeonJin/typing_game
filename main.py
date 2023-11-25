@@ -24,6 +24,23 @@ ALIGN_CENTER = 0x04
 ALIGN_BOTTOM = 0x10
 ALIGN_TOP = 0x20
 
+class player :
+    def __init__(self) :
+        self.life = LIFE_COUNT
+        self.score = 0
+
+    def update_score(self) :
+        self.score += SCORE_UNIT
+
+    def kill_life(self) :
+        self.life -= 1
+
+    def is_game_over(self) :
+        if self.life <= 0 :
+            return True
+        else : 
+            return False
+
 class game :
     def __init__(self) :
         # initialize pygame
@@ -105,10 +122,9 @@ class game :
 
         input_str = ''
 
+        game_player = player()
         enemy_ctrl = enemy_group()
 
-        score = 0
-        life = LIFE_COUNT
         crashed = False
         while not crashed :
             for event in pygame.event.get() :
@@ -129,7 +145,7 @@ class game :
                             #print(input_str)
                     elif event.key == pygame.K_RETURN :
                         if enemy_ctrl.compare(input_str) == True :
-                            score += 10
+                            game_player.update_score()
 
                         input_str = ''
                     elif event.key == pygame.K_F10 :
@@ -141,27 +157,25 @@ class game :
             # Draw background
             gctrl.surface.blit(self.bg_img, (0, 0))
 
-            # Draw test
+            # Draw text
             self.draw_inputtext(input_str)
 
-            # Create enemy
+            # Create and move enemy
             enemy_ctrl.create()
-
-            # Move enemy
             if enemy_ctrl.move() == True :
-                life -= 1
+                game_player.kill_life()
 
             # Draw enemy
             enemy_ctrl.draw()
 
             # Draw Score
-            self.draw_score(score)
-            self.draw_life(life)
+            self.draw_score(game_player.score)
+            self.draw_life(game_player.life)
 
             pygame.display.update()
             self.clock.tick(60)
 
-            if life <= 0 :
+            if game_player.is_game_over() == True :
                 self.game_over()
                 crashed = True
 

@@ -5,6 +5,7 @@ import pygame
 import random
 from time import sleep
 
+from dic_data import *
 from gobject import *
 from gresource import *
 
@@ -123,7 +124,7 @@ class game :
         input_str = ''
 
         game_player = player()
-        enemy_ctrl = enemy_group()
+        enemy_ctrl = enemy_group(test_word_str)
 
         crashed = False
         while not crashed :

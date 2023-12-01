@@ -53,13 +53,8 @@ DOWN_SPEED = 20
 ENEMY_CREATION_SPEED = 80
 ENEMY_MAX = 5
 
-test_word_str = 'Acted, Adapted, Combined, Composed, Conceptualized, Condensed, Created, Customized, Designed, Developed, \
-                Devised, Directed, Displayed, Entertained, Established, Fashioned, Formulated, Founded, Illustrated, Initiated, \
-                Instituted, Integrated, Introduced, Invented, Modeled, Modiﬁed, Originated, Performed, Photographed, Planned, \
-                Revised, Revitalized, Shaped, Solve'    
-
 class enemy_group :
-    def __init__(self) :
+    def __init__(self, word_data) :
         self.enemies = []
         self.max_enemy = ENEMY_MAX
 
@@ -71,7 +66,7 @@ class enemy_group :
         self.booms = []
 
         self.test_dic = []
-        f = StringIO(test_word_str)
+        f = StringIO(word_data)
         reader = csv.reader(f, delimiter=',')
         for rows in reader :
             for word in rows :

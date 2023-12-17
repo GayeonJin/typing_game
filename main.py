@@ -11,27 +11,19 @@ from gresource import *
 
 TITLE_STR = "Typing Game"
 
-SCORE_UNIT = 10
-LIFE_COUNT = 3
-
-STATUS_XOFFSET = 10
-STATUS_YOFFSET = 5
-
-INPUTTEXT_YOFFSET = 30
-
-ALIGN_LEFT = 0x01
-ALIGN_RIGHT = 0x02
-ALIGN_CENTER = 0x04
-ALIGN_BOTTOM = 0x10
-ALIGN_TOP = 0x20
-
 class player :
+    SCORE_UNIT = 10
+    LIFE_COUNT = 3
+
+    STATUS_XOFFSET = 10
+    STATUS_YOFFSET = 5
+
     def __init__(self) :
-        self.life = LIFE_COUNT
+        self.life = player.LIFE_COUNT
         self.score = 0
 
     def update_score(self) :
-        self.score += SCORE_UNIT
+        self.score += player.SCORE_UNIT
 
     def kill_life(self) :
         self.life -= 1
@@ -42,7 +34,15 @@ class player :
         else : 
             return False
 
+    def draw_life(self, count) :
+        gctrl.draw_string("Life : " + str(count), player.STATUS_XOFFSET, player.STATUS_YOFFSET, ALIGN_RIGHT)
+
+    def draw_score(self, count) :
+        gctrl.draw_string("Score : " + str(count), player.STATUS_XOFFSET, player.STATUS_YOFFSET, ALIGN_LEFT)
+
 class game :
+    INPUTTEXT_YOFFSET = 30
+
     def __init__(self) :
         # initialize pygame
         pygame.init()
@@ -65,38 +65,12 @@ class game :
         pygame.quit()
         sys.exit()
 
-    def draw_string(self, str, x_offset = 0, y = 0, align = ALIGN_LEFT, font_size = 25, font_color = COLOR_WHITE) :
-        font = pygame.font.SysFont(None, font_size)
-        text = font.render(str, True, font_color)
-        text_rect = text.get_rect()
-
-        text_rect.top = y
-        if align & ALIGN_LEFT :
-            text_rect.left = x_offset    
-        elif align & ALIGN_RIGHT :
-            text_rect.left = gctrl.width - text_rect.width - x_offset
-        elif align & ALIGN_CENTER :
-            text_rect.center = ((gctrl.width / 2), (gctrl.height / 2))
-
-        if align & ALIGN_TOP :
-            text_rect.top = INPUTTEXT_YOFFSET
-        elif align & ALIGN_BOTTOM :
-            text_rect.top = gctrl.height - INPUTTEXT_YOFFSET
-        
-        gctrl.surface.blit(text, text_rect)
-
-    def draw_life(self, count) :
-        self.draw_string("Life : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_RIGHT)
-
-    def draw_score(self, count) :
-        self.draw_string("Score : " + str(count), STATUS_XOFFSET, STATUS_YOFFSET, ALIGN_LEFT)
-
     def draw_inputtext(self, str) :
         if len(str) > 0 :
-            self.draw_string(str, 0, INPUTTEXT_YOFFSET, ALIGN_CENTER | ALIGN_BOTTOM)
+            gctrl.draw_string(str, 0, game.INPUTTEXT_YOFFSET, ALIGN_CENTER | ALIGN_BOTTOM)
 
     def game_over(self) :
-        self.draw_string('Game Over', 0, 0, ALIGN_CENTER, 80, COLOR_RED)
+        gctrl.draw_string('Game Over', 0, 0, ALIGN_CENTER, 80, COLOR_RED)
         pygame.display.update()
         sleep(2)
         self.run_game()
@@ -104,7 +78,7 @@ class game :
     def start_game(self) :
         # Clear gamepad
         gctrl.surface.fill(COLOR_WHITE)
-        self.draw_string("press any key", 0, 0, ALIGN_CENTER, 40, COLOR_RED)
+        gctrl.draw_string("press any key", 0, 0, ALIGN_CENTER, 40, COLOR_RED)
 
         while True :
             for event in pygame.event.get():
@@ -116,7 +90,7 @@ class game :
                     return
 
             pygame.display.update()
-            self.clock.tick(60)    
+            self.clock.tick(FPS)    
 
     def run_game(self) :
         self.start_game()
@@ -170,11 +144,11 @@ class game :
             enemy_ctrl.draw()
 
             # Draw Score
-            self.draw_score(game_player.score)
-            self.draw_life(game_player.life)
+            game_player.draw_score(game_player.score)
+            game_player.draw_life(game_player.life)
 
             pygame.display.update()
-            self.clock.tick(60)
+            self.clock.tick(FPS)
 
             if game_player.is_game_over() == True :
                 self.game_over()
